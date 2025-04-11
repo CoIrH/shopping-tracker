@@ -9,6 +9,7 @@
     label, input, button { margin: 5px; }
     .item { border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 10px 0; background: #fff; }
     #input-area { margin-bottom: 20px; }
+    #summary { margin: 15px 0; padding: 10px; background: #ffeef8; border-radius: 8px; }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -24,6 +25,7 @@
     <button onclick="addItem()">添加记录喵！</button>
   </div>
 
+  <div id="summary"></div>
   <div id="list"></div>
 
   <script>
@@ -41,31 +43,52 @@
     const db = firebase.firestore();
 
     function daysSince(dateStr) {
-  const today = new Date();
-  const buyDate = new Date(dateStr);
-  today.setHours(0, 0, 0, 0);
-  buyDate.setHours(0, 0, 0, 0);
-  const diffTime = today - buyDate;
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
-}
+      const today = new Date();
+      const buyDate = new Date(dateStr);
+      today.setHours(0, 0, 0, 0);
+      buyDate.setHours(0, 0, 0, 0);
+      const diffTime = today - buyDate;
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    }
 
     async function render() {
       const list = document.getElementById('list');
+      const summary = document.getElementById('summary');
       list.innerHTML = '';
+      summary.innerHTML = '';
+
       const snapshot = await db.collection("items").orderBy("date", "desc").get();
+
+      let totalCost = 0;
+      let itemsCount = 0;
+
       snapshot.forEach((doc) => {
         const item = doc.data();
+        const dayCount = daysSince(item.date);
+        const avgValue = (item.price / dayCount).toFixed(2);
+
         const div = document.createElement('div');
         div.className = 'item';
         div.innerHTML = `
           <strong>${item.name}</strong><br>
           🛒 购买日期：${item.date}<br>
           💸 花费金额：¥${item.price}<br>
-          📅 拥有：${daysSince(item.date)} 天喵~<br>
+          📅 拥有：${dayCount} 天喵~<br>
+          📉 平均每日价值：¥${avgValue} / 天喵~<br>
           <button onclick="removeItem('${doc.id}')">删除喵~</button>
         `;
         list.appendChild(div);
+
+        totalCost += parseFloat(item.price);
+        itemsCount++;
       });
+
+      if (itemsCount > 0) {
+        summary.innerHTML = `
+          🧾 <strong>主人的总消费：</strong> ¥${totalCost.toFixed(2)} 喵~<br>
+          ✨ 每件物品都在为主人的生活增添闪亮喵~！
+        `;
+      }
     }
 
     async function addItem() {
