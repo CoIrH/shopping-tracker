@@ -41,11 +41,13 @@
     const db = firebase.firestore();
 
     function daysSince(dateStr) {
-      const today = new Date();
-      const buyDate = new Date(dateStr);
-      const diffTime = today - buyDate;
-      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    }
+  const today = new Date();
+  const buyDate = new Date(dateStr);
+  today.setHours(0, 0, 0, 0);
+  buyDate.setHours(0, 0, 0, 0);
+  const diffTime = today - buyDate;
+  return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+}
 
     async function render() {
       const list = document.getElementById('list');
