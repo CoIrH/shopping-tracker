@@ -1,1 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>主人的购物记录喵~</title>
+  <style>
+    body { font-family: sans-serif; background: #fff8f0; color: #333; padding: 20px; }
+    h1 { color: #e38cae; }
+    label, input, button { margin: 5px; }
+    .item { border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 10px 0; background: #fff; }
+  </style>
+</head>
+<body>
+  <h1>主人的购物记录喵~</h1>
 
+  <label>物品名称：<input type="text" id="name"></label><br>
+  <label>购买日期：<input type="date" id="date"></label><br>
+  <label>花费金额（元）：<input type="number" id="price"></label><br>
+  <button onclick="addItem()">添加记录喵！</button>
+
+  <div id="list"></div>
+
+  <script>
+    let items = JSON.parse(localStorage.getItem('items') || '[]');
+
+    function daysSince(dateStr) {
+      const today = new Date();
+      const buyDate = new Date(dateStr);
+      const diffTime = today - buyDate;
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    function render() {
+      const list = document.getElementById('list');
+      list.innerHTML = '';
+      items.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <strong>${item.name}</strong><br>
+          🛒 购买日期：${item.date}<br>
+          💸 花费金额：¥${item.price}<br>
+          📅 拥有：${daysSince(item.date)} 天喵~<br>
+          <button onclick="removeItem(${index})">删除喵~</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function addItem() {
+      const name = document.getElementById('name').value;
+      const date = document.getElementById('date').value;
+      const price = document.getElementById('price').value;
+      if (!name || !date || !price) return alert('请输入完整信息喵~');
+      items.push({ name, date, price });
+      localStorage.setItem('items', JSON.stringify(items));
+      render();
+    }
+
+    function removeItem(index) {
+      items.splice(index, 1);
+      localStorage.setItem('items', JSON.stringify(items));
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
