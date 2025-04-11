@@ -23,6 +23,7 @@
     <label>购买日期：<input type="date" id="date"></label><br>
     <label>花费金额（元）：<input type="number" id="price"></label><br>
     <button onclick="addItem()">添加记录喵！</button>
+    <button onclick="exportData()">导出数据喵！</button>
   </div>
 
   <div id="summary"></div>
@@ -121,6 +122,26 @@
     async function removeItem(id) {
       await db.collection("items").doc(id).delete();
       render();
+    }
+
+    async function exportData() {
+      const snapshot = await db.collection("items").orderBy("date", "desc").get();
+      const rows = ["名称,购买日期,金额,拥有天数,每日价值"];
+
+      snapshot.forEach((doc) => {
+        const item = doc.data();
+        const days = daysSince(item.date);
+        const avg = (item.price / days).toFixed(2);
+        rows.push(`${item.name},${item.date},${item.price},${days},${avg}`);
+      });
+
+      const blob = new Blob([rows.join("\n")], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '购物记录喵.csv';
+      a.click();
+      URL.revokeObjectURL(url);
     }
 
     render();
