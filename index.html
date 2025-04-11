@@ -27,7 +27,6 @@
   <div id="list"></div>
 
   <script>
-    // Firebase 配置
     const firebaseConfig = {
       apiKey: "AIzaSyCFb-Oqzcde-X1q7YXgvgdEhuq21ppbdvs",
       authDomain: "shoppingtracker-d9826.firebaseapp.com",
@@ -51,7 +50,7 @@
     async function render() {
       const list = document.getElementById('list');
       list.innerHTML = '';
-      const snapshot = await db.collection("items").get();
+      const snapshot = await db.collection("items").orderBy("date", "desc").get();
       snapshot.forEach((doc) => {
         const item = doc.data();
         const div = document.createElement('div');
@@ -74,8 +73,8 @@
 
       const today = new Date();
       const buyDate = new Date(date);
-      today.setHours(0,0,0,0);
-      buyDate.setHours(0,0,0,0);
+      today.setHours(0, 0, 0, 0);
+      buyDate.setHours(0, 0, 0, 0);
 
       if (!name || !date || isNaN(price)) {
         alert("请输入完整信息喵~");
