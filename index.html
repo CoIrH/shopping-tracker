@@ -48,14 +48,30 @@
     }
 
     function addItem() {
-      const name = document.getElementById('name').value;
-      const date = document.getElementById('date').value;
-      const price = document.getElementById('price').value;
-      if (!name || !date || !price) return alert('请输入完整信息喵~');
-      items.push({ name, date, price });
-      localStorage.setItem('items', JSON.stringify(items));
-      render();
-    }
+  const name = document.getElementById('name').value.trim();
+  const date = document.getElementById('date').value;
+  const price = parseFloat(document.getElementById('price').value);
+
+  const today = new Date();
+  const buyDate = new Date(date);
+  today.setHours(0,0,0,0);
+  buyDate.setHours(0,0,0,0);
+
+  if (!name || !date || isNaN(price)) {
+    alert("请输入完整信息喵~");
+    return;
+  }
+
+  if (buyDate > today) {
+    alert("购买日期不能晚于今天喵！");
+    return;
+  }
+
+  const item = { name, date, price };
+  items.push(item);
+  localStorage.setItem('items', JSON.stringify(items));
+  render();
+}
 
     function removeItem(index) {
       items.splice(index, 1);
