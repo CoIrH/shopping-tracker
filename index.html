@@ -8,20 +8,38 @@
     h1 { color: #e38cae; }
     label, input, button { margin: 5px; }
     .item { border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 10px 0; background: #fff; }
+    #input-area { margin-bottom: 20px; }
   </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <h1>主人的购物记录喵~</h1>
 
-  <label>物品名称：<input type="text" id="name"></label><br>
-  <label>购买日期：<input type="date" id="date"></label><br>
-  <label>花费金额（元）：<input type="number" id="price"></label><br>
-  <button onclick="addItem()">添加记录喵！</button>
+  <div id="input-area" style="display: none;">
+    <label>物品名称：<input type="text" id="name"></label><br>
+    <label>购买日期：<input type="date" id="date"></label><br>
+    <label>花费金额（元）：<input type="number" id="price"></label><br>
+    <button onclick="addItem()">添加记录喵！</button>
+  </div>
 
   <div id="list"></div>
 
   <script>
-    let items = JSON.parse(localStorage.getItem('items') || '[]');
+    // Firebase 配置
+    const firebaseConfig = {
+      apiKey: "AIzaSyCFb-Oqzcde-X1q7YXgvgdEhuq21ppbdvs",
+      authDomain: "shoppingtracker-d9826.firebaseapp.com",
+      projectId: "shoppingtracker-d9826",
+      storageBucket: "shoppingtracker-d9826.firebasestorage.app",
+      messagingSenderId: "307253068931",
+      appId: "1:307253068931:web:0cd4a55f619f94f89487b6",
+      measurementId: "G-J5CSL5T34G"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
 
     function daysSince(dateStr) {
       const today = new Date();
@@ -30,52 +48,57 @@
       return Math.floor(diffTime / (1000 * 60 * 60 * 24));
     }
 
-    function render() {
+    async function render() {
       const list = document.getElementById('list');
+      const inputArea = document.getElementById('input-area');
       list.innerHTML = '';
-      items.forEach((item, index) => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `
-          <strong>${item.name}</strong><br>
-          🛒 购买日期：${item.date}<br>
-          💸 花费金额：¥${item.price}<br>
-          📅 拥有：${daysSince(item.date)} 天喵~<br>
-          <button onclick="removeItem(${index})">删除喵~</button>
-        `;
-        list.appendChild(div);
-      });
+      const snapshot = await db.collection("items").get();
+      if (snapshot.empty) {
+        inputArea.style.display = 'block';
+      } else {
+        inputArea.style.display = 'none';
+        snapshot.forEach((doc) => {
+          const item = doc.data();
+          const div = document.createElement('div');
+          div.className = 'item';
+          div.innerHTML = `
+            <strong>${item.name}</strong><br>
+            🛒 购买日期：${item.date}<br>
+            💸 花费金额：¥${item.price}<br>
+            📅 拥有：${daysSince(item.date)} 天喵~<br>
+            <button onclick="removeItem('${doc.id}')">删除喵~</button>
+          `;
+          list.appendChild(div);
+        });
+      }
     }
 
-    function addItem() {
-  const name = document.getElementById('name').value.trim();
-  const date = document.getElementById('date').value;
-  const price = parseFloat(document.getElementById('price').value);
+    async function addItem() {
+      const name = document.getElementById('name').value.trim();
+      const date = document.getElementById('date').value;
+      const price = parseFloat(document.getElementById('price').value);
 
-  const today = new Date();
-  const buyDate = new Date(date);
-  today.setHours(0,0,0,0);
-  buyDate.setHours(0,0,0,0);
+      const today = new Date();
+      const buyDate = new Date(date);
+      today.setHours(0,0,0,0);
+      buyDate.setHours(0,0,0,0);
 
-  if (!name || !date || isNaN(price)) {
-    alert("请输入完整信息喵~");
-    return;
-  }
+      if (!name || !date || isNaN(price)) {
+        alert("请输入完整信息喵~");
+        return;
+      }
 
-  if (buyDate > today) {
-    alert("购买日期不能晚于今天喵！");
-    return;
-  }
+      if (buyDate > today) {
+        alert("购买日期不能晚于今天喵！");
+        return;
+      }
 
-  const item = { name, date, price };
-  items.push(item);
-  localStorage.setItem('items', JSON.stringify(items));
-  render();
-}
+      await db.collection("items").add({ name, date, price });
+      render();
+    }
 
-    function removeItem(index) {
-      items.splice(index, 1);
-      localStorage.setItem('items', JSON.stringify(items));
+    async function removeItem(id) {
+      await db.collection("items").doc(id).delete();
       render();
     }
 
@@ -83,4 +106,3 @@
   </script>
 </body>
 </html>
-
