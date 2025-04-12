@@ -10,15 +10,26 @@
     .item { border: 1px solid #ddd; border-radius: 8px; padding: 10px; margin: 10px 0; background: #fff; }
     #input-area { margin-bottom: 20px; }
     #summary { margin: 15px 0; padding: 10px; background: #ffeef8; border-radius: 8px; }
+    #auth-area { margin: 20px 0; padding: 10px; background: #e0ffe0; border-radius: 8px; }
   </style>
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
   <h1>主人的购物记录喵~</h1>
 
-  <div id="input-area">
+  <div id="auth-area">
+    <div id="user-info">未登录喵~</div>
+    <label>邮箱：<input type="email" id="email"></label>
+    <label>密码：<input type="password" id="password"></label><br>
+    <button onclick="register()">注册喵！</button>
+    <button onclick="login()">登录喵！</button>
+    <button onclick="logout()">登出喵！</button>
+  </div>
+
+  <div id="input-area" style="display:none;">
     <label>物品名称：<input type="text" id="name"></label><br>
     <label>购买日期：<input type="date" id="date"></label><br>
     <label>花费金额（元）：<input type="number" id="price"></label><br>
@@ -41,7 +52,9 @@
     };
 
     firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
     const db = firebase.firestore();
+    let currentUser = null;
 
     function daysSince(dateStr) {
       const today = new Date();
@@ -53,13 +66,13 @@
     }
 
     async function render() {
+      if (!currentUser) return;
       const list = document.getElementById('list');
       const summary = document.getElementById('summary');
       list.innerHTML = '';
       summary.innerHTML = '';
 
-      const snapshot = await db.collection("items").orderBy("date", "desc").get();
-
+      const snapshot = await db.collection("items").doc(currentUser.uid).collection("records").orderBy("date", "desc").get();
       let totalCost = 0;
       let itemsCount = 0;
 
@@ -93,6 +106,7 @@
     }
 
     async function addItem() {
+      if (!currentUser) return alert("请先登录喵~");
       const name = document.getElementById('name').value.trim();
       const date = document.getElementById('date').value;
       const price = parseFloat(document.getElementById('price').value);
@@ -106,13 +120,11 @@
         alert("请输入完整信息喵~");
         return;
       }
-
       if (buyDate > today) {
         alert("购买日期不能晚于今天喵！");
         return;
       }
-
-      await db.collection("items").add({ name, date, price });
+      await db.collection("items").doc(currentUser.uid).collection("records").add({ name, date, price });
       document.getElementById('name').value = '';
       document.getElementById('date').value = '';
       document.getElementById('price').value = '';
@@ -120,21 +132,21 @@
     }
 
     async function removeItem(id) {
-      await db.collection("items").doc(id).delete();
+      if (!currentUser) return;
+      await db.collection("items").doc(currentUser.uid).collection("records").doc(id).delete();
       render();
     }
 
     async function exportData() {
-      const snapshot = await db.collection("items").orderBy("date", "desc").get();
+      if (!currentUser) return;
+      const snapshot = await db.collection("items").doc(currentUser.uid).collection("records").orderBy("date", "desc").get();
       const rows = ["名称,购买日期,金额,拥有天数,每日价值"];
-
       snapshot.forEach((doc) => {
         const item = doc.data();
         const days = daysSince(item.date);
         const avg = (item.price / days).toFixed(2);
         rows.push(`${item.name},${item.date},${item.price},${days},${avg}`);
       });
-
       const blob = new Blob([rows.join("\n")], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -144,7 +156,28 @@
       URL.revokeObjectURL(url);
     }
 
-    render();
+    function register() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password).then(() => alert("注册成功喵~"));
+    }
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password).then(() => alert("登录成功喵~"));
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+
+    auth.onAuthStateChanged(user => {
+      currentUser = user;
+      document.getElementById("user-info").innerText = user ? `当前登录：${user.email}` : "未登录喵~";
+      document.getElementById("input-area").style.display = user ? "block" : "none";
+      if (user) render();
+    });
   </script>
 </body>
 </html>
